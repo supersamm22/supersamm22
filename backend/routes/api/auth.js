@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import config from '../../config';
+// import config from '../../config';
 import jwt from 'jsonwebtoken';
-import auth from '../../middleware/auth';
+// import auth from '../../middleware/auth';
 // User Model
-import User from '../../models/User';
+import User from '../../models/User.js';
 
-const { JWT_SECRET } = config;
-const router = Router();
+// const { JWT_SECRET } = config;
+
+const authRouter = Router();
 
 /**
  * @route   POST api/auth/login
@@ -15,7 +16,7 @@ const router = Router();
  * @access  Public
  */
 
-router.post('/login', async (req, res) => {
+authRouter.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   // Simple validation
@@ -31,7 +32,9 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw Error('Invalid credentials');
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: 3600 });
+    // you can return later and put JWT_SECRET instead of 'secret'
+
+    const token = jwt.sign({ id: user._id }, 'secret', { expiresIn: 3600 });
     if (!token) throw Error('Couldnt sign the token');
 
     res.status(200).json({
@@ -39,8 +42,8 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (e) {
     res.status(400).json({ msg: e.message });
@@ -53,7 +56,7 @@ router.post('/login', async (req, res) => {
  * @access  Public
  */
 
-router.post('/register', async (req, res) => {
+authRouter.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
 
   // Simple validation
@@ -74,14 +77,16 @@ router.post('/register', async (req, res) => {
     const newUser = new User({
       name,
       email,
-      password: hash
+      password: hash,
     });
 
     const savedUser = await newUser.save();
     if (!savedUser) throw Error('Something went wrong saving the user');
 
-    const token = jwt.sign({ id: savedUser._id }, JWT_SECRET, {
-      expiresIn: 3600
+    // you can return later and put JWT_SECRET instead of 'secret'
+
+    const token = jwt.sign({ id: savedUser._id }, 'secret', {
+      expiresIn: 3600,
     });
 
     res.status(200).json({
@@ -89,8 +94,8 @@ router.post('/register', async (req, res) => {
       user: {
         id: savedUser.id,
         name: savedUser.name,
-        email: savedUser.email
-      }
+        email: savedUser.email,
+      },
     });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -103,7 +108,7 @@ router.post('/register', async (req, res) => {
  * @access  Private
  */
 
-router.get('/user', auth, async (req, res) => {
+authRouter.get('/user', async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) throw Error('User does not exist');
@@ -113,4 +118,4 @@ router.get('/user', auth, async (req, res) => {
   }
 });
 
-export default router;
+export default authRouter;
